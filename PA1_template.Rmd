@@ -1,25 +1,188 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research Assignment"
+author: "Dr. Julia Maier"
+date: "`r Sys.Date()`"
+output: html_document
 ---
 
+## Introduction
 
-## Loading and preprocessing the data
+This assignments includes data from a personal activity monitoring device, which collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+Firstly, the dataset is loaded into R. 
+
+```{r activity}
+
+# Load dataset
+
+    activity <- read.csv("activity.csv")
+    activity$date <- as.Date(activity$date)
+
+# Load libraries
+    
+    library(tidyverse)
+    library(dplyr)
+    library(ggplot2)
+```
+
+<br>
+
+In the following, several research questions are answered:
+
+<br>
+
+#### 1. What is mean total number of steps taken per day?
+
+The histogram illustrates the total number of steps taken per day.
+
+```{r steps per day, echo=TRUE}
+
+# Calculate total number of steps per day
+
+    steps_per_day <- aggregate(steps ~ date, 
+                               data = activity, 
+                               FUN = sum,
+                               na.rm = TRUE)
+
+# Produce histogram of total number of steps per day
+
+    hist(steps_per_day$steps, 
+         main = "Histogram", 
+         xlab = "Total steps per day", 
+         ylab = "Frequency")
+```
 
 
+Mean and median of total number of steps per day:
 
-## What is mean total number of steps taken per day?
+```{r steps per day mean & median, echo=TRUE}
+
+# Calculate and report mean and median of total number of steps per day
+
+    mittelwert <- mean(steps_per_day$steps)
+    medianwert <- median(steps_per_day$steps)
+    
+    ergebnis <- merge(mittelwert, medianwert)
+    colnames(ergebnis) <- c("Mean", "Median")
+    
+    print(ergebnis)
+
+```
+
+<br>
+
+#### 2. What is the average daily activity pattern?
+
+The following plot shows the mean number of daily steps per time interval.
+
+```{r Daily activity pattern, echo=TRUE}
+
+# Calculate mean number of daily steps per time interval
+
+    steps_per_interval <- aggregate(steps ~ interval, 
+                                  data = activity, 
+                                  FUN = mean, 
+                                  na.rm = TRUE)
+
+# Plot mean number of daily steps per time interval
+
+    plot(steps_per_interval$interval, steps_per_interval$steps, 
+         type = "l",
+         xlab = "Time interval",
+         ylab = "Daily mean of steps")
+```
 
 
+The maximum number of steps took place in the following 5-minute interval:
 
-## What is the average daily activity pattern?
+```{r Daily activity pattern maximum, echo=TRUE}
+
+# Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+    subset(steps_per_interval, steps == max(steps, na.rm = TRUE))$interval
+
+```
+
+<br>
+
+#### 3. Imputing missing values
+
+As there are missing values in the data set, these can be imputed statistically. In a first step, the number of missing values in the data set is calculated.
 
 
+```{r Imputing missing values, echo=TRUE}
 
-## Imputing missing values
+# Number of missing values in the data set
+
+    sum(is.na(activity))
+
+# Impute NA-data with mean of interval
+
+    activity_imputed <- activity %>%
+          group_by(interval) %>%
+          mutate(steps = ifelse(is.na(steps),
+          mean (steps, na.rm = TRUE), steps))
+    
+```
 
 
+In the following histogram, the total number of steps taken per day are illustrated for the imputed data. 
 
-## Are there differences in activity patterns between weekdays and weekends?
+
+```{r Histogram for imputed missing values, echo=TRUE}
+
+# Histogramm for steps per day for imputed data
+
+    steps_per_day_imp <- aggregate(steps ~ date, 
+                               data = activity_imputed, 
+                               FUN = sum,
+                               na.rm = TRUE)
+    
+    hist(steps_per_day_imp$steps, 
+         main = "Histogram", 
+         xlab = "Total steps per day", 
+         ylab = "Frequency")
+    
+```
+
+Values for mean and median of total number of steps per day are converging in the imputed data set:
+
+```{r steps per day mean & median for imputed misssing values, echo=TRUE}
+
+# calculate and report mean and median of total number of steps per day for imputed data
+
+    mittelwert <- mean(steps_per_day_imp$steps)
+    medianwert <- median(steps_per_day_imp$steps)
+    
+    ergebnis_imp <- merge(mittelwert, medianwert)
+    colnames(ergebnis_imp) <- c("Mean", "Median")
+    
+    print(ergebnis_imp)
+
+```
+
+<br>
+
+#### 4. Are there differences in activity patterns between weekdays and weekends?
+
+The different activity patterns for weekdays and weekends is illustrated in the following plots.
+
+```{r Weekdays vs. weekends, echo=TRUE}
+
+# Identify and mark weekdays in the data set    
+
+    activity_imputed$weekday <- weekdays(activity_imputed$date)
+    
+    activity_imputed$weekday_bi <- activity_imputed$weekday == "Samstag" |
+      activity_imputed$weekday == "Sonntag"
+    
+    activity_imputed$weekday_binom <- as.numeric(activity_imputed$weekday_bi)
+    
+# Create plots for weekday vs. weekend
+    
+    g <- ggplot(activity_imputed, aes(interval, steps))
+    
+    g + geom_line() + facet_grid(. ~ weekday_binom, 
+                                labeller = labeller(weekday_binom = c("0" = "Weekday",
+                                                                      "1" = "Weekend")), 
+                                margins = FALSE)
+```
