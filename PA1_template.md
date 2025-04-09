@@ -67,7 +67,7 @@ The histogram illustrates the total number of steps taken per day.
          ylab = "Frequency")
 ```
 
-[plot of chunk steps per day](figure/steps per day-1.png)
+![plot of chunk steps per day](figure/steps per day-1.png)
 
 
 Mean and median of total number of steps per day:
